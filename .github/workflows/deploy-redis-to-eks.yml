@@ -43,14 +43,14 @@ jobs:
       - name: 构建并推送 Docker 镜像
         uses: docker/build-push-action@v6
         with:
-          context: ./docker  # Dockerfile 所在目录（上下文，不变）
+          context: ./docker  
           # 1. 修正：将 'dockerfile' 改为 v6 支持的 'file' 参数
-          file: ./docker/Dockerfile  # 正确参数名，指定Dockerfile路径
+          file: ./docker/Dockerfile  
           # 2. 修正：移除标签行后的注释（避免被解析为标签的一部分）
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/redis:${{ github.sha }}
-            ${{ secrets.DOCKER_HUB_USERNAME }}/redis:latest  # 注意：这行的注释保留不影响，因为在YAML中是单独行的注释
-          push: true  # 推送镜像到 Docker Hub（不变）
+            ${{ secrets.DOCKER_HUB_USERNAME }}/redis:latest 
+          push: true  
       # 步骤 6：替换 K8s 配置中的镜像标签（将占位符替换为实际推送的标签）
       - name: 替换 K8s 镜像标签
         run: |
