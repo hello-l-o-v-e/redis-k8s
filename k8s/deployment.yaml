@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis-deployment
-  namespace: default  # 可自定义命名空间（需提前创建：kubectl create ns redis）
+  namespace: redis  # 可自定义命名空间（需提前创建：kubectl create ns redis）
 spec:
   replicas: 1  # 单实例（生产建议用 Redis Cluster 或主从，此处简化）
   selector:
@@ -49,7 +49,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: redis-pvc
-  namespace: default
+  namespace: redis
 spec:
   accessModes:
     - ReadWriteOnce  # 单节点读写（适合单实例）
@@ -59,12 +59,12 @@ spec:
   # 存储类：EKS 默认存储类为 gp2/gp3（无需手动创建，AWS 自动 provision）
   storageClassName: gp2
 ---
-# 创建 K8s Secret：存储 Redis 密码（避免明文）
+# 创建 K8s Secret：存储 Redis 密码（避免1明文）
 apiVersion: v1
 kind: Secret
 metadata:
   name: redis-secret
-  namespace: default
+  namespace: redis
 type: Opaque
 data:
   # 密码需 Base64 编码（示例：密码为 "your-redis-password"，编码后：eW91ci1yZWRpcy1wYXNzd29yZA==）
