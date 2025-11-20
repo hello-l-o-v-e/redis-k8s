@@ -12,9 +12,6 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest  # 运行环境：Ubuntu 最新版
-    permissions:
-      id-token: write   # 必须添加这个权限
-      contents: read    # 如果需要读取代码库内容    
     steps:
       # 步骤 1：检出 GitHub 仓库代码
       - name: 检出代码
@@ -24,10 +21,9 @@ jobs:
       - name: 配置 AWS 凭证
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          role-to-assume: arn:aws:iam::366000657291:role/bosi-eks-cli
-          role-session-name: bosi-eks-cli
-          
 
       # 步骤 3：更新 kubeconfig，让 kubectl 能连接 EKS 集群
       - name: 连接 EKS 集群
@@ -53,7 +49,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/redis:${{ github.sha }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/redis:latest  # 可选：添加 latest 标签
-          push: true  # 推送镜像到 Docker Hub2
+          push: true  # 推送镜像到 Docker Hub
 
       # 步骤 6：替换 K8s 配置中的镜像标签（将占位符替换为实际推送的标签）
       - name: 替换 K8s 镜像标签
@@ -71,6 +67,6 @@ jobs:
           kubectl apply -f k8s/
           # 等待 Deployment 就绪（超时 5 分钟）
           kubectl rollout status deployment/redis-deployment -n default --timeout=5m
-          # 查看部署状态（可选，便于日志排查1
+          # 查看部署状态（可选，便于日志排查）
           kubectl get pods -n default
           kubectl get svc -n default
