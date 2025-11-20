@@ -53,7 +53,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/redis:${{ github.sha }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/redis:latest  # 可选：添加 latest 标签
-          push: true  # 推送镜像到 Docker Hub
+          push: true  # 推送镜像到 Docker Hub2
 
       # 步骤 6：替换 K8s 配置中的镜像标签（将占位符替换为实际推送的标签）
       - name: 替换 K8s 镜像标签
