@@ -30,7 +30,7 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
           # 验证连接（可选）
-          kubectl get nodes
+          kubectl get pods -A
 
       # 步骤 4：登录 Docker Hub（用于推送镜像）22
       - name: 登录 Docker Hub
