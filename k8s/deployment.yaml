@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+  namespace: default  # 可自定义命名空间（需提前创建：kubectl create ns redis）
+spec:
+  replicas: 1  # 单实例（生产建议用 Redis Cluster 或主从，此处简化）
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        # 镜像占位符：后续 Actions 会替换为 Docker Hub 镜像（格式：用户名/仓库:标签）
+        image: ${DOCKER_HUB_USERNAME}/redis:${IMAGE_TAG}
+        ports:
+        - containerPort: 6379
+        # 资源限制（根据 EKS 节点配置调整）
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        # 环境变量：注入 Redis 密码（从 K8s Secret 获取）
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        # 数据持久化：挂载 EBS 卷（避免 Pod 重启后数据丢失）
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data  # 对应 Redis 配置的 dir /data
+      # 卷配置：使用 K8s PersistentVolumeClaim（PVC）
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-pvc
+---
+# 创建 PVC（持久化存储）
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce  # 单节点读写（适合单实例）
+  resources:
+    requests:
+      storage: 10Gi  # 存储大小（按需调整）
+  # 存储类：EKS 默认存储类为 gp2/gp3（无需手动创建，AWS 自动 provision）
+  storageClassName: gp2
+---
+# 创建 K8s Secret：存储 Redis 密码（避免明文）
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+  namespace: default
+type: Opaque
+data:
+  # 密码需 Base64 编码（示例：密码为 "your-redis-password"，编码后：eW91ci1yZWRpcy1wYXNzd29yZA==）
+  # 编码命令：echo -n "your-redis-password" | base64
+  password: ZXhhbXBsZS1yZWRpcy1wYXNzd29yZA==

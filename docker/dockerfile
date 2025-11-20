@@ -1,0 +1,14 @@
+# 基础镜像：选用轻量的 alpine 版本
+FROM redis:alpine
+
+# 复制自定义 Redis 配置文件到镜像
+COPY redis.conf /etc/redis/redis.conf
+
+# 创建数据目录（持久化用），并授权
+RUN mkdir -p /data && chown redis:redis /data
+
+# 暴露 Redis 默认端口
+EXPOSE 6379
+
+# 启动命令：使用自定义配置文件
+CMD ["redis-server", "/etc/redis/redis.conf"]

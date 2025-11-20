@@ -1,0 +1,72 @@
+name: 构建并部署 Redis 到 EKS
+on:
+  # 触发条件：推送到 main 分支（可自定义，如 tag、release）
+  push:
+    branches: [ main ]
+    # 仅当 docker/ 或 k8s/ 目录变更时触发（优化性能）
+    paths:
+      - 'docker/**'
+      - 'k8s/**'
+      - '.github/workflows/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest  # 运行环境：Ubuntu 最新版
+    steps:
+      # 步骤 1：检出 GitHub 仓库代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 步骤 2：配置 AWS 凭证，用于连接 EKS
+      - name: 配置 AWS 凭证
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 步骤 3：更新 kubeconfig，让 kubectl 能连接 EKS 集群
+      - name: 连接 EKS 集群
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+          # 验证连接（可选）
+          kubectl get nodes
+
+      # 步骤 4：登录 Docker Hub（用于推送镜像）
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      # 步骤 5：构建 Redis 镜像并推送到 Docker Hub
+      - name: 构建并推送 Docker 镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker  # Dockerfile 所在目录（上下文）
+          dockerfile: ./docker/Dockerfile  # Dockerfile 路径
+          # 镜像标签：用 GitHub 提交 SHA 作为标签（唯一标识，避免覆盖）
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/redis:${{ github.sha }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/redis:latest  # 可选：添加 latest 标签
+          push: true  # 推送镜像到 Docker Hub
+
+      # 步骤 6：替换 K8s 配置中的镜像标签（将占位符替换为实际推送的标签）
+      - name: 替换 K8s 镜像标签
+        run: |
+          # 替换 deployment.yaml 中的 ${DOCKER_HUB_USERNAME} 和 ${IMAGE_TAG}
+          sed -i "s|\${DOCKER_HUB_USERNAME}|${{ secrets.DOCKER_HUB_USERNAME }}|g" k8s/deployment.yaml
+          sed -i "s|\${IMAGE_TAG}|${{ github.sha }}|g" k8s/deployment.yaml
+          # 验证替换结果（可选）
+          cat k8s/deployment.yaml
+
+      # 步骤 7：部署 K8s 资源到 EKS
+      - name: 部署 Redis 到 EKS
+        run: |
+          # 应用所有 K8s 配置文件
+          kubectl apply -f k8s/
+          # 等待 Deployment 就绪（超时 5 分钟）
+          kubectl rollout status deployment/redis-deployment -n default --timeout=5m
+          # 查看部署状态（可选，便于日志排查）
+          kubectl get pods -n default
+          kubectl get svc -n default
