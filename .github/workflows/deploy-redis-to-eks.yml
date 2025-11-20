@@ -12,6 +12,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest  # 运行环境：Ubuntu 最新版
+    permissions:
+      id-token: write   # 必须添加这个权限
+      contents: read    # 如果需要读取代码库内容    
     steps:
       # 步骤 1：检出 GitHub 仓库代码
       - name: 检出代码
