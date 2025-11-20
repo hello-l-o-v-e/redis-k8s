@@ -45,7 +45,7 @@ jobs:
         with:
           context: ./docker  # Dockerfile 所在目录（上下文）
           dockerfile: ./docker/Dockerfile  # Dockerfile 路径
-          # 镜像标签：用 GitHub 提交 SHA 作为标签（唯一标识，避免覆盖）
+          # 镜像标签：用 GitHub 提交 SHA 作为标签（唯一标识，避免覆盖1）
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/redis:${{ github.sha }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/redis:latest  # 可选：添加 latest 标签
