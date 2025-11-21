@@ -65,8 +65,8 @@ jobs:
         run: |
           # 应用所有 K8s 配置文件
           kubectl apply -f k8s/
-          # 等待 Deployment 就绪（超时 5 分钟）
-          kubectl rollout status deployment/redis-deployment -n default --timeout=5m
+          # 等待 Deployment 就绪（超时 2 分钟）
+          kubectl rollout status deployment/redis-deployment -n default --timeout=2m
           # 查看部署状态（可选，便于日志排查）2
           kubectl get pods -n default
           kubectl get svc -n default
